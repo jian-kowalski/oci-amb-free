@@ -33,10 +33,68 @@ resource "oci_core_default_security_list" "security_list" {
   }
 }
 
-resource "oci_core_subnet" "_" {
+//Criação da subnet
+resource "oci_core_subnet" "subnet" {
   compartment_id    = local.compartment_id
   cidr_block        = "10.0.0.0/24"
   vcn_id            = oci_core_vcn.vcn.id
   route_table_id    = oci_core_default_route_table.route_table.id
   security_list_ids = [oci_core_default_security_list.security_list.id]
+}
+
+//Criação do load balancer
+resource "oci_load_balancer_load_balancer" "load_balancer" {
+
+  compartment_id = local.compartment_id
+  display_name   = format("lb_%s", var.name)
+  shape          = "flexible"
+  shape_details {
+    maximum_bandwidth_in_mbps = 10
+    minimum_bandwidth_in_mbps = 10
+  }
+
+  subnet_ids = [
+    oci_core_subnet.subnet.id,
+  ]
+}
+
+//Criando o backend-set
+resource "oci_load_balancer_backend_set" "load_balancer_backend_set" {
+  name             = format("backend_set_%s", var.name)
+  load_balancer_id = oci_load_balancer_load_balancer.load_balancer.id
+  policy           = var.lb_polycy
+
+  health_checker {
+    port     = "80"
+    protocol = "HTTP"
+    url_path = "/actuator/health"
+  }
+}
+
+//Definindo o backend_set
+resource "oci_load_balancer_backend" "backend_set" {
+  backendset_name  = oci_load_balancer_backend_set.load_balancer_backend_set.name
+  ip_address       = oci_core_instance.instance[var.instance_default].public_ip
+  load_balancer_id = oci_load_balancer_load_balancer.load_balancer.id
+  port             = "80"
+}
+
+
+# resource "oci_load_balancer_hostname" "test_hostname1" {
+#   #Required
+#   hostname         = "app.free.com"
+#   load_balancer_id = oci_load_balancer_load_balancer.free_load_balancer.id
+#   name             = "hostname1"
+# }
+
+resource "oci_load_balancer_listener" "listener" {
+  load_balancer_id         = oci_load_balancer_load_balancer.load_balancer.id
+  name                     = "http"
+  default_backend_set_name = oci_load_balancer_backend_set.load_balancer_backend_set.name
+  port                     = 80
+  protocol                 = "HTTP"
+
+  connection_configuration {
+    idle_timeout_in_seconds = "120"
+  }
 }

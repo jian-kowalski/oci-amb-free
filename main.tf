@@ -31,6 +31,7 @@ locals {
     i => {
       node_name  = format("node%d", i)
       ip_address = format("10.0.0.%d", 10 + i)
+      role       = i == 1 ? "controlplane" : "worker"
     }
   }
 }
@@ -39,7 +40,7 @@ locals {
 resource "oci_core_instance" "instance" {
   for_each            = local.instances
   display_name        = each.value.node_name
-  availability_domain = data.oci_identity_availability_domains.domains.availability_domains[var.availability_domain].name
+  availability_domain = data.oci_identity_availability_domains.domains.availability_domains[var.availability_domain_default].name
   compartment_id      = local.compartment_id
   shape               = var.shape
 
@@ -54,12 +55,12 @@ resource "oci_core_instance" "instance" {
   }
 
   create_vnic_details {
-    subnet_id  = oci_core_subnet._.id
+    subnet_id  = oci_core_subnet.subnet.id
     private_ip = each.value.ip_address
   }
 
   metadata = {
     ssh_authorized_keys = join("\n", local.public_key)
-    # user_data           = data.cloudinit_config._[each.key].rendered
+    user_data           = data.cloudinit_config.k8s_config[each.key].rendered
   }
 }

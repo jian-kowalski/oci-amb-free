@@ -40,11 +40,11 @@ variable "os_version" {
 // Numero de instancias que serão criadas
 variable "num_instance" {
   type    = number
-  default = 2
+  default = 3
 }
 
 // Dominio de disponibilidade padrão
-variable "availability_domain" {
+variable "availability_domain_default" {
   type    = number
   default = 0
 }
@@ -58,4 +58,15 @@ variable "ocpus" {
 variable "memoria_gb" {
   type    = number
   default = 6
+}
+
+variable "lb_polycy" {
+  type    = string
+  default = "ROUND_ROBIN"
+}
+
+// Retorna a primeira instancia (controplane)
+variable "instance_default" {
+  type    = number
+  default = 1
 }
