@@ -70,3 +70,21 @@ variable "instance_default" {
   type    = number
   default = 1
 }
+
+variable "db_host" {
+  type    = string
+  default = "value"
+}
+
+variable "db_name" {
+  type    = string
+  default = "value"
+}
+variable "db_username" {
+  type    = string
+  default = "value"
+}
+variable "db_password" {
+  type    = string
+  default = "value"
+}
