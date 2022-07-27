@@ -1,3 +1,14 @@
+//Criação do compartimento
+resource "oci_identity_compartment" "compartment" {
+  name          = var.name
+  description   = var.description
+  enable_delete = true
+}
+
+locals {
+  compartment_id = oci_identity_compartment.compartment.id
+}
+
 //Criação da VCN
 resource "oci_core_vcn" "vcn" {
   compartment_id = local.compartment_id
@@ -65,27 +76,23 @@ resource "oci_load_balancer_backend_set" "load_balancer_backend_set" {
   policy           = var.lb_polycy
 
   health_checker {
+    protocol = "TCP"
     port     = "80"
-    protocol = "HTTP"
-    url_path = "/actuator/health"
   }
 }
 
+
+
 //Definindo o backend_set
 resource "oci_load_balancer_backend" "backend_set" {
+  count            = length(oci_core_instance.node)
   backendset_name  = oci_load_balancer_backend_set.load_balancer_backend_set.name
-  ip_address       = oci_core_instance.instance[var.instance_default].public_ip
+  ip_address       = oci_core_instance.node[count.index].private_ip
   load_balancer_id = oci_load_balancer_load_balancer.load_balancer.id
   port             = "80"
 }
 
 
-# resource "oci_load_balancer_hostname" "test_hostname1" {
-#   #Required
-#   hostname         = "app.free.com"
-#   load_balancer_id = oci_load_balancer_load_balancer.free_load_balancer.id
-#   name             = "hostname1"
-# }
 
 resource "oci_load_balancer_listener" "listener" {
   load_balancer_id         = oci_load_balancer_load_balancer.load_balancer.id
